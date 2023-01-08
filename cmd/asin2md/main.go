@@ -23,5 +23,6 @@ func run(asin string) error {
 		return fmt.Errorf("getamazoninfo.Get: %w", err)
 	}
 	fmt.Println(res)
+	os.WriteFile(asin+".md", []byte(res), 0666)
 	return nil
 }
