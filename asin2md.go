@@ -48,7 +48,8 @@ func (i Info) String() string {
 func (i Info) Tags() string {
 	tags := []string{}
 	for _, v := range i.authors {
-		tags = append(tags, fmt.Sprintf(`"書籍/著者/%s"`, strings.ReplaceAll(v, " ", "")))
+		vv := strings.ReplaceAll(v, " ", "")
+		tags = append(tags, fmt.Sprintf(`"書籍/著者/%s"`, strings.ReplaceAll(vv, "　", "")))
 	}
 	if i.publisher != "" {
 		tags = append(tags, fmt.Sprintf(`"書籍/出版社/%s"`, strings.ReplaceAll(i.publisher, " ", "")))
@@ -94,11 +95,7 @@ func Get(asin string) (string, error) {
 	// タイプセッティングの改善
 	info.advanced_type_setting = findText(doc, "#rpi-attribute-book_details-advanced_type_setting > div.a-section.a-spacing-none.a-text-center.rpi-attribute-value > span > a > span")
 	// 著者
-	info.authors = findTexts(doc, "#bylineInfo > span.author.notFaded > a")
-	author := findText(doc, "#bylineInfo > span.author.notFaded > span.a-declarative > a.a-link-normal.contributorNameID")
-	if author != "" {
-		info.authors = append(info.authors, author)
-	}
+	info.authors = findAuthors(doc)
 	return info.String(), nil
 }
 
@@ -120,12 +117,16 @@ func findSrc(doc *goquery.Document, selector string) string {
 	return ret
 }
 
-func findTexts(doc *goquery.Document, selector string) []string {
-	ret := []string{}
-	doc.Find(selector).Each(func(i int, s *goquery.Selection) {
-		ret = append(ret, strings.TrimSpace(s.Text()))
+func findAuthors(doc *goquery.Document) []string {
+	res := []string{}
+	doc.Find("#bylineInfo > span.author").Each(func(i int, s *goquery.Selection) {
+		name := s.Find("a.contributorNameID").Text()
+		if name == "" {
+			name = s.Find("a.a-link-normal").Text()
+		}
+		res = append(res, strings.TrimSpace(name))
 	})
-	return ret
+	return res
 }
 
 func dateConvert(src string) string {
