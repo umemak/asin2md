@@ -11,6 +11,7 @@ import (
 )
 
 type Info struct {
+	asin                     string
 	productTitle             string
 	ebook_pages              string
 	handwritten_sticky_notes string
@@ -23,13 +24,16 @@ type Info struct {
 	advanced_type_setting    string
 	authors                  []string
 	image                    string
+	buy                      string
+	from                     string
+	to                       string
 }
 
 func (i Info) String() string {
 	ret := "---\n"
 	ret += i.Tags()
 	ret += "aliases: [\"" + i.productTitle + "\"]\n"
-	ret += "productTitle: \"" + i.productTitle + "\"\n"
+	ret += "productTitle: " + i.productTitle + "\n"
 	ret += "author: " + strings.Join(i.authors, ";") + "\n"
 	ret += "imageURL: " + i.image + "\n"
 	ret += "ebookPages: " + i.ebook_pages + "\n"
@@ -42,6 +46,19 @@ func (i Info) String() string {
 	ret += "wordWise: " + i.word_wise + "\n"
 	ret += "advancedTypeSetting: " + i.advanced_type_setting + "\n"
 	ret += "\n---\n"
+	ret += "# " + i.productTitle + "\n"
+	ret += "## Metadata\n"
+	ret += i.Authors()
+	ret += "* ASIN: " + i.asin + "\n"
+	ret += "* Reference: https://www.amazon.co.jp/dp/" + i.asin + "\n"
+	ret += "* [Kindle link](kindle://book?action=open&asin=" + i.asin + ")\n"
+	ret += "* ![](" + i.image + ")\n"
+	ret += "* 出版社: [[" + i.publisher + "]]\n"
+	ret += "* 出版日: " + i.publication_date + "\n"
+	ret += "* 購入日:: " + i.buy + "\n"
+	ret += "* 開始日:: " + i.from + "\n"
+	ret += "* 完了日:: " + i.to + "\n"
+	// ret += "\n#unlimited\n"
 	return ret
 }
 
@@ -58,20 +75,28 @@ func (i Info) Tags() string {
 	return "tags: [" + strings.Join(tags, ", ") + "]\n"
 }
 
-func Get(asin string) (string, error) {
+func (i Info) Authors() string {
+	authors := []string{}
+	for _, v := range i.authors {
+		authors = append(authors, fmt.Sprintf(`[[%s]]`, v))
+	}
+	return "* Author: " + strings.Join(authors, "、") + "\n"
+}
+
+func Get(asin, buy, from, to string) (string, error) {
 	res, err := http.Get(fmt.Sprintf("https://www.amazon.co.jp/dp/%s/", asin))
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer res.Body.Close()
 	if res.StatusCode != 200 {
-		log.Fatalf("status code error: %d %s", res.StatusCode, res.Status)
+		log.Fatalf("%s: status code error: %d %s", asin, res.StatusCode, res.Status)
 	}
 	doc, err := goquery.NewDocumentFromReader(res.Body)
 	if err != nil {
 		log.Fatal(err)
 	}
-	info := Info{}
+	info := Info{asin: asin, buy: buy, from: from, to: to}
 	// タイトル
 	info.productTitle = findText(doc, "#productTitle")
 	// 画像
